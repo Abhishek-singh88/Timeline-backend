@@ -63,14 +63,20 @@ router.post('/trigger', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Manual update trigger error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to send updates',
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+  console.error('❌ GitHub API Error:', {
+    status: error.response?.status,
+    message: error.message,
+    rateLimitRemaining: error.response?.headers['x-ratelimit-remaining'],
+    rateLimitReset: error.response?.headers['x-ratelimit-reset']
+  });
+  
+  if (error.response?.status === 403 || error.response?.status === 429) {
+    throw new Error('GitHub API rate limit exceeded. Please try again later or add a GitHub token.');
   }
+  
+  throw new Error(`GitHub API error: ${error.message}`);
+}
+
 });
 
 // Get latest GitHub timeline (for preview/testing)
