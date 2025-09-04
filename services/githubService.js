@@ -108,7 +108,7 @@ const generateEmailContent = (events) => {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         
         <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">🐙 GitHub Timeline Update</h1>
+          <h1 style="color: white; margin: 0; font-size: 28px;"> GitHub Timeline Update</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 16px;">Latest activities from the GitHub community</p>
         </div>
         
