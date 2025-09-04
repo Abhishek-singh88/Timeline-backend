@@ -5,12 +5,16 @@ const fetchGitHubTimeline = async () => {
     console.log('🔍 Fetching GitHub timeline...');
     
     const response = await axios.get('https://api.github.com/events', {
-      headers: {
-        'User-Agent': 'GitHub-Timeline-App',
-        'Accept': 'application/vnd.github.v3+json'
-      },
-      timeout: 10000 // 10 second timeout
-    });
+  headers: {
+    'User-Agent': 'GitHub-Timeline-App',
+    'Accept': 'application/vnd.github.v3+json',
+    ...(process.env.GITHUB_TOKEN && {
+      'Authorization': `token ${process.env.GITHUB_TOKEN}`
+    })
+  },
+  timeout: 15000
+});
+
 
     const events = response.data.slice(0, 15); // Get top 15 events
     
