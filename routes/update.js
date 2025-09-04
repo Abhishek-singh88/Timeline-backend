@@ -73,7 +73,6 @@ router.post('/trigger', async (req, res) => {
 
 });
 
-// Get latest GitHub timeline (for preview/testing)
 router.get('/preview', async (req, res) => {
   try {
     const events = await fetchGitHubTimeline();
