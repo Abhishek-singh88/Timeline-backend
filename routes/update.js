@@ -5,12 +5,10 @@ const supabase = require('../config/supabase');
 
 const router = express.Router();
 
-// Manual trigger for sending updates
 router.post('/trigger', async (req, res) => {
   try {
     console.log('🚀 Manual update trigger initiated...');
 
-    // Fetch active subscribers
     const { data: subscribers, error } = await supabase
       .from('email_subscribers')
       .select('email')
@@ -28,7 +26,6 @@ router.post('/trigger', async (req, res) => {
 
     console.log(`👥 Found ${subscribers.length} active subscribers`);
 
-    // Fetch GitHub timeline
     const events = await fetchGitHubTimeline();
     
     if (events.length === 0) {
@@ -38,17 +35,14 @@ router.post('/trigger', async (req, res) => {
       });
     }
 
-    // Generate email content
     const emailContent = generateEmailContent(events);
     
-    // Extract email addresses
     const emailAddresses = subscribers.map(sub => sub.email);
 
-    // Send bulk emails
-    console.log('📧 Sending emails to subscribers...');
+    console.log('Sending emails to subscribers...');
     const results = await sendBulkEmails(emailAddresses, emailContent);
 
-    console.log(`✅ Bulk email completed: ${results.sent} sent, ${results.failed} failed`);
+    console.log(`Bulk email completed: ${results.sent} sent, ${results.failed} failed`);
     
     res.json({ 
       success: true,
@@ -63,7 +57,7 @@ router.post('/trigger', async (req, res) => {
     });
 
   } catch (error) {
-  console.error('❌ GitHub API Error:', {
+  console.error('GitHub API Error:', {
     status: error.response?.status,
     message: error.message,
     rateLimitRemaining: error.response?.headers['x-ratelimit-remaining'],
@@ -92,7 +86,7 @@ router.get('/preview', async (req, res) => {
       email_preview: emailContent
     });
   } catch (error) {
-    console.error('❌ Error fetching timeline preview:', error);
+    console.error(' Error fetching timeline preview:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch GitHub timeline preview' 

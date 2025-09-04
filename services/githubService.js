@@ -16,7 +16,7 @@ const fetchGitHubTimeline = async () => {
 });
 
 
-    const events = response.data.slice(0, 15); // Get top 15 events
+    const events = response.data.slice(0, 15); 
     
     const formattedEvents = events.map(event => ({
       id: event.id,
@@ -38,11 +38,11 @@ const fetchGitHubTimeline = async () => {
       action: getEventDescription(event)
     }));
 
-    console.log(`✅ Fetched ${formattedEvents.length} GitHub events`);
+    console.log(`Fetched ${formattedEvents.length} GitHub events`);
     return formattedEvents;
 
   } catch (error) {
-    console.error('❌ Error fetching GitHub timeline:', error.message);
+    console.error('Error fetching GitHub timeline:', error.message);
     if (error.response) {
       console.error('GitHub API Response:', error.response.status, error.response.statusText);
     }

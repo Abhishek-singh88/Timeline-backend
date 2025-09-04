@@ -1,8 +1,7 @@
 const nodemailer = require('nodemailer');
 
-// Create email transporter
 const createTransporter = () => {
-  return nodemailer.createTransport({  // ← Fixed this line
+  return nodemailer.createTransport({ 
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT),
     secure: false,
@@ -12,15 +11,14 @@ const createTransporter = () => {
     }
   });
 };
-// Test email connection
 const testEmailConnection = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    console.log('✅ Email server connection verified');
+    console.log('Email server connection verified');
     return true;
   } catch (error) {
-    console.error('❌ Email server connection failed:', error.message);
+    console.error('Email server connection failed:', error.message);
     return false;
   }
 };
@@ -74,10 +72,10 @@ const sendWelcomeEmail = async (email) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`📨 Welcome email sent to: ${email}`);
+    console.log(`Welcome email sent to: ${email}`);
 
   } catch (error) {
-    console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+    console.error(`Failed to send welcome email to ${email}:`, error.message);
     throw error;
   }
 };
@@ -89,20 +87,20 @@ const sendTimelineUpdate = async (email, content) => {
     const mailOptions = {
       from: `"GitHub Timeline" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: '📊 Your GitHub Timeline Update',
+      subject: 'Your GitHub Timeline Update',
       html: content
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`📧 Timeline update sent to: ${email}`);
+    console.log(`Timeline update sent to: ${email}`);
 
   } catch (error) {
-    console.error(`❌ Failed to send timeline update to ${email}:`, error.message);
+    console.error(`Failed to send timeline update to ${email}:`, error.message);
     throw error;
   }
 };
 
-// Send bulk emails with rate limiting
+
 const sendBulkEmails = async (emails, content) => {
   const results = {
     sent: 0,
@@ -115,7 +113,6 @@ const sendBulkEmails = async (emails, content) => {
       await sendTimelineUpdate(emails[i], content);
       results.sent++;
       
-      // Add delay between emails to avoid rate limiting
       if (i < emails.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -131,7 +128,6 @@ const sendBulkEmails = async (emails, content) => {
   return results;
 };
 
-// Test connection on startup
 testEmailConnection();
 
 module.exports = {
