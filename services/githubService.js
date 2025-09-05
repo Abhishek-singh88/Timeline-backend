@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const fetchGitHubTimeline = async () => {
   try {
-    console.log('🔍 Fetching GitHub timeline...');
+    console.log('Fetching GitHub timeline...');
     
     const response = await axios.get('https://api.github.com/events', {
   headers: {

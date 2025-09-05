@@ -26,7 +26,7 @@ router.post('/', validateEmail, async (req, res) => {
     }
 
     const { email } = req.body;
-    console.log(`📧 New signup attempt: ${email}`);
+    console.log(`New signup attempt: ${email}`);
 
     const { data: existingUser, error: checkError } = await supabase
       .from('email_subscribers')

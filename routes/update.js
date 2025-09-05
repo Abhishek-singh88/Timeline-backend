@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/trigger', async (req, res) => {
   try {
-    console.log('🚀 Manual update trigger initiated...');
+    console.log('Manual update trigger initiated...');
 
     const { data: subscribers, error } = await supabase
       .from('email_subscribers')
@@ -24,7 +24,7 @@ router.post('/trigger', async (req, res) => {
       });
     }
 
-    console.log(`👥 Found ${subscribers.length} active subscribers`);
+    console.log(`Found ${subscribers.length} active subscribers`);
 
     const events = await fetchGitHubTimeline();
     
