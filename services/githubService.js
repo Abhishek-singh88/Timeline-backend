@@ -2,19 +2,18 @@ const axios = require('axios');
 
 const fetchGitHubTimeline = async () => {
   try {
-    console.log('Fetching GitHub timeline...');
+    console.log('🔍 Fetching GitHub timeline...');
     
     const response = await axios.get('https://api.github.com/events', {
-  headers: {
-    'User-Agent': 'GitHub-Timeline-App',
-    'Accept': 'application/vnd.github.v3+json',
-    ...(process.env.GITHUB_TOKEN && {
-      'Authorization': `token ${process.env.GITHUB_TOKEN}`
-    })
-  },
-  timeout: 15000
-});
-
+      headers: {
+        'User-Agent': 'GitHub-Timeline-App',
+        'Accept': 'application/vnd.github.v3+json',
+        ...(process.env.GITHUB_TOKEN && {
+          'Authorization': `token ${process.env.GITHUB_TOKEN}`
+        })
+      },
+      timeout: 15000
+    });
 
     const events = response.data.slice(0, 15); 
     
@@ -38,13 +37,13 @@ const fetchGitHubTimeline = async () => {
       action: getEventDescription(event)
     }));
 
-    console.log(`Fetched ${formattedEvents.length} GitHub events`);
+    console.log(`✅ Fetched ${formattedEvents.length} GitHub events`);
     return formattedEvents;
 
   } catch (error) {
-    console.error('Error fetching GitHub timeline:', error.message);
+    console.error('❌ Error fetching GitHub timeline:', error.message);
     if (error.response) {
-      console.error('GitHub API Response:', error.response.status, error.response.statusText);
+      console.error('❌ GitHub API Response:', error.response.status, error.response.statusText);
     }
     throw new Error('Failed to fetch GitHub timeline');
   }
@@ -108,12 +107,13 @@ const generateEmailContent = (events) => {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         
         <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
-          <h1 style="color: white; margin: 0; font-size: 28px;"> GitHub Timeline Update</h1>
+          <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+          <h1 style="color: white; margin: 0; font-size: 28px;">GitHub Timeline Update</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 16px;">Latest activities from the GitHub community</p>
         </div>
         
         <div style="margin-bottom: 30px;">
-          <h2 style="color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 10px;">Recent Activities</h2>
+          <h2 style="color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 10px;">🚀 Recent Activities</h2>
           ${eventItems}
         </div>
         
@@ -122,7 +122,7 @@ const generateEmailContent = (events) => {
             🚀 You're receiving this because you subscribed to GitHub Timeline updates
           </p>
           <p style="color: #586069; font-size: 12px; margin: 5px 0 0 0;">
-            Generated on ${new Date().toLocaleDateString()}
+            Generated on ${new Date().toLocaleDateString()} • Powered by Brevo
           </p>
         </div>
         
@@ -131,7 +131,127 @@ const generateEmailContent = (events) => {
   `;
 };
 
+// Brevo email integration
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+
+const sendTimelineUpdateToAll = async (subscribers) => {
+  try {
+    console.log('🔄 Starting GitHub timeline email broadcast...');
+    
+    // Fetch latest GitHub events
+    const events = await fetchGitHubTimeline();
+    if (!events || events.length === 0) {
+      console.log('⚠️ No GitHub events found, skipping email broadcast');
+      return { sent: 0, failed: 0, message: 'No events to send' };
+    }
+
+    // Generate email content
+    const emailContent = generateEmailContent(events);
+    
+    // Send emails using Brevo
+    const results = await sendBulkTimelineEmails(subscribers, emailContent);
+    
+    console.log(`📧 Email broadcast completed: ${results.sent} sent, ${results.failed} failed`);
+    return results;
+
+  } catch (error) {
+    console.error('❌ Error in timeline email broadcast:', error.message);
+    throw error;
+  }
+};
+
+const sendBulkTimelineEmails = async (subscribers, emailContent) => {
+  const results = {
+    sent: 0,
+    failed: 0,
+    errors: []
+  };
+
+  const API_KEY = process.env.BREVO_API_KEY;
+  const FROM_EMAIL = process.env.EMAIL_USER || 'no-reply@brevo.com';
+  const FROM_NAME = 'GitHub Timeline';
+
+  if (!API_KEY) {
+    throw new Error('BREVO_API_KEY not configured');
+  }
+
+  console.log(`📤 Sending timeline updates to ${subscribers.length} subscribers...`);
+
+  for (let i = 0; i < subscribers.length; i++) {
+    const subscriber = subscribers[i];
+    const email = subscriber.email || subscriber; // Handle both object and string formats
+    
+    try {
+      const response = await axios.post(BREVO_API_URL, {
+        sender: { name: FROM_NAME, email: FROM_EMAIL },
+        to: [{ email: email }],
+        subject: '🚀 Your GitHub Timeline Update',
+        htmlContent: emailContent
+      }, {
+        headers: {
+          'accept': 'application/json',
+          'api-key': API_KEY,
+          'content-type': 'application/json'
+        }
+      });
+
+      console.log(`✅ Timeline update sent to: ${email}`);
+      results.sent++;
+      
+      // Rate limiting for Brevo (300 emails/day on free plan)
+      if (i < subscribers.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to send timeline update to ${email}:`, error.response?.data || error.message);
+      results.failed++;
+      results.errors.push({
+        email: email,
+        error: error.response?.data || error.message
+      });
+    }
+  }
+
+  return results;
+};
+
+// Single email send function
+const sendTimelineUpdateToEmail = async (email, customEvents = null) => {
+  try {
+    const events = customEvents || await fetchGitHubTimeline();
+    const emailContent = generateEmailContent(events);
+    
+    const API_KEY = process.env.BREVO_API_KEY;
+    const FROM_EMAIL = process.env.EMAIL_USER || 'no-reply@brevo.com';
+    const FROM_NAME = 'GitHub Timeline';
+
+    const response = await axios.post(BREVO_API_URL, {
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: email }],
+      subject: '🚀 Your GitHub Timeline Update',
+      htmlContent: emailContent
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'api-key': API_KEY,
+        'content-type': 'application/json'
+      }
+    });
+
+    console.log(`✅ Timeline update sent to: ${email}, messageId: ${response.data.messageId}`);
+    return { success: true, messageId: response.data.messageId };
+
+  } catch (error) {
+    console.error(`❌ Failed to send timeline update to ${email}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   fetchGitHubTimeline,
-  generateEmailContent
+  generateEmailContent,
+  sendTimelineUpdateToAll,
+  sendTimelineUpdateToEmail,
+  sendBulkTimelineEmails
 };
