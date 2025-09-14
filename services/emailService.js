@@ -1,37 +1,50 @@
-const nodemailer = require('nodemailer');
 
-const createTransporter = () => {
-  return nodemailer.createTransport({ 
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-};
+require('dotenv').config();
+const axios = require('axios');
+
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const API_KEY = process.env.BREVO_API_KEY;
+const FROM_EMAIL = process.env.EMAIL_USER;
+const FROM_NAME = 'GitHub Timeline';
+
+if (!API_KEY) {
+  console.warn("⚠️ BREVO_API_KEY is not set — emails won't work.");
+}
+
 const testEmailConnection = async () => {
+  if (!API_KEY) {
+    console.error('❌ BREVO_API_KEY missing');
+    return false;
+  }
+  
   try {
-    const transporter = createTransporter();
-    await transporter.verify();
-    console.log('Email server connection verified');
+    
+    const testTo = process.env.TEST_RECIPIENT || FROM_EMAIL;
+    const response = await axios.post(BREVO_API_URL, {
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: testTo }],
+      subject: "Brevo API Connection Test",
+      htmlContent: `<p>✅ Brevo API connection verified successfully! ${new Date().toISOString()}</p>`
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'api-key': API_KEY,
+        'content-type': 'application/json'
+      }
+    });
+    
+    console.log('✅ Email server connection verified');
+    console.log(`✅ Test email sent, messageId: ${response.data.messageId}`);
     return true;
   } catch (error) {
-    console.error('Email server connection failed:', error.message);
+    console.error('❌ Email server connection failed:', error.response?.data || error.message);
     return false;
   }
 };
 
 const sendWelcomeEmail = async (email) => {
   try {
-    const transporter = createTransporter();
-    
-   const mailOptions = {
-  from: `"GitHub Timeline" <${process.env.EMAIL_USER}>`,
-  to: email,
-  subject: '🚀 Welcome to GitHub Timeline Updates!',
-  html: `
+    const htmlContent = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -70,7 +83,7 @@ const sendWelcomeEmail = async (email) => {
           <h3 style="color: #2d3748; margin: 0 0 15px 0; font-size: 18px;">🎯 What's next?</h3>
           <div style="color: #4a5568; font-size: 14px; line-height: 1.6;">
             <p style="margin: 0 0 10px 0;"><strong>1. Confirmation Complete</strong> - Your subscription is active!</p>
-            <p style="margin: 0 0 10px 0;"><strong>2. Smart Delivery</strong> - Updates sent manually when there's exciting activity</p>
+            <p style="margin: 0 0 10px 0;"><strong>2. Smart Delivery</strong> - Updates sent manually when there's existing activity</p>
             <p style="margin: 0;"><strong>3. Stay Informed</strong> - Be the first to discover emerging trends</p>
           </div>
         </div>
@@ -88,39 +101,51 @@ const sendWelcomeEmail = async (email) => {
         
       </body>
     </html>
-  `
-};
+    `;
 
+    const response = await axios.post(BREVO_API_URL, {
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: email }],
+      subject: '🚀 Welcome to GitHub Timeline Updates!',
+      htmlContent
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'api-key': API_KEY,
+        'content-type': 'application/json'
+      }
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Welcome email sent to: ${email}`);
+    console.log(`✅ Welcome email sent to: ${email}`);
 
   } catch (error) {
-    console.error(`Failed to send welcome email to ${email}:`, error.message);
+    console.error(`❌ Failed to send welcome email to ${email}:`, error.response?.data || error.message);
     throw error;
   }
 };
 
 const sendTimelineUpdate = async (email, content) => {
   try {
-    const transporter = createTransporter();
-    
-    const mailOptions = {
-      from: `"GitHub Timeline" <${process.env.EMAIL_USER}>`,
-      to: email,
+    const response = await axios.post(BREVO_API_URL, {
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: email }],
       subject: 'Your GitHub Timeline Update',
-      html: content
-    };
+      htmlContent: content
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'api-key': API_KEY,
+        'content-type': 'application/json'
+      }
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Timeline update sent to: ${email}`);
+    console.log(`✅ Timeline update sent to: ${email}`);
 
   } catch (error) {
-    console.error(`Failed to send timeline update to ${email}:`, error.message);
+    console.error(`❌ Failed to send timeline update to ${email}:`, error.response?.data || error.message);
     throw error;
   }
 };
-
 
 const sendBulkEmails = async (emails, content) => {
   const results = {
@@ -135,19 +160,20 @@ const sendBulkEmails = async (emails, content) => {
       results.sent++;
       
       if (i < emails.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     } catch (error) {
       results.failed++;
       results.errors.push({
         email: emails[i],
-        error: error.message
+        error: error.response?.data || error.message
       });
     }
   }
 
   return results;
 };
+
 
 testEmailConnection();
 

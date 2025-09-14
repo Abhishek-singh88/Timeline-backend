@@ -52,8 +52,10 @@ router.post('/', validateEmail, async (req, res) => {
 
         if (updateError) throw updateError;
 
+        console.log('Calling sendWelcomeEmail for', email);
         await sendWelcomeEmail(email);
         console.log(` Reactivated subscription: ${email}`);
+        console.log('Finished sendWelcomeEmail');
         
         return res.status(200).json({ 
           success: true,
